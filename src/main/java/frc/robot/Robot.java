@@ -19,6 +19,7 @@ import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Encoder;
 
 public class Robot extends TimedRobot {
   private static final String kDefaultAuto = "Default";
@@ -41,10 +42,15 @@ public class Robot extends TimedRobot {
   private final Joystick m_Extreme0 = new Joystick(0); //Left : shooter
   private final Joystick  m_Extreme1 = new Joystick(1); //Right : intake
 
+  private Encoder m_encoder1 = new Encoder(0, 1);
+  private Encoder m_encoder2 = new Encoder(2, 3);
+
   //Motor
   private final double TOPINTAKE_SPEED = .5;
 
   public Timer time = new Timer();
+  public Timer time1 = new Timer();
+  public double starttime = 0;
 
   double scaleJoystickInput(double joyIn) {
     return Math.signum(joyIn) * Math.pow( Math.abs(joyIn), 2);
@@ -64,11 +70,19 @@ public class Robot extends TimedRobot {
 
     m_leftfollow.follow(m_leftMotor);
     m_rightfollow.follow(m_rightMotor);
+
+    // Use SetDistancePerPulse to set the multiplier for GetDistance
+    // This is set up assuming a 6 inch wheel with a 360 CPR encoder.
+
+    m_encoder1.setDistancePerPulse((Math.PI * 6) / 360.0);
+    m_encoder2.setDistancePerPulse((Math.PI * 6) / 360.0); 
   }
 
   
   @Override
-  public void robotPeriodic() {}
+  public void robotPeriodic() {
+    
+  }
 
   
   @Override
@@ -80,7 +94,12 @@ public class Robot extends TimedRobot {
     m_ShooterRight.set(-1);
     m_TopIntakeMotor1.set(0);
     m_BottomIntakeMotor2.set(0);
+    m_encoder1.reset();
+    m_encoder2.reset();
+    m_robotDrive.arcadeDrive(0, 0);
     time.start();
+    time1.start();
+    starttime = time1.get();
     //start timer
     
   }
@@ -89,21 +108,33 @@ public class Robot extends TimedRobot {
   @Override
   public void autonomousPeriodic() {
     //power intake motors
-    if (time.hasPeriodPassed(5))
+    if (time.hasPeriodPassed(2.5))
     {
       m_TopIntakeMotor1.set(-TOPINTAKE_SPEED);
       m_BottomIntakeMotor2.set(TOPINTAKE_SPEED);
       time.reset();
       time.stop();
     }
+    if (time1.get()-starttime >= 7.5){
+    { 
+      System.out.println(m_encoder2.getDistance());
+      if (Math.abs(m_encoder2.getDistance()) < 24){
+        m_robotDrive.arcadeDrive(-0.75, 0);
+      }
+      else m_robotDrive.arcadeDrive(0, 0);
+    }
+  }
 
 
   }
 
   /** This function is called once when teleop is enabled. */
   @Override
-  public void teleopInit() {}
-
+  public void teleopInit() {
+  m_robotDrive.arcadeDrive(0, 0);
+  m_ShooterLeft.set(0);
+  m_ShooterRight.set(0);
+  }
   /** This function is called periodically during operator control. */
   @Override
   public void teleopPeriodic() {
@@ -116,6 +147,8 @@ public class Robot extends TimedRobot {
        // stop motor
     }
 
+    
+
     if(m_Extreme1.getTrigger()) { //Shooter
       m_ShooterLeft.set(-1);
       m_ShooterRight.set(-1);
@@ -127,6 +160,15 @@ public class Robot extends TimedRobot {
     double forward = scaleJoystickInput( m_Extreme0.getY(Hand.kLeft) );
     double rotation = scaleJoystickInput( m_Extreme1.getX(Hand.kRight) );
     m_robotDrive.arcadeDrive(forward, rotation);
+
+    System.out.println("------");
+    System.out.println("enc1 " + m_encoder1.getDistance() + " " + m_encoder1.getDirection());
+    System.out.println("enc2 " + m_encoder2.getDistance() + " " + m_encoder2.getDirection());
+
+    if(m_Extreme0.getRawButton(2) || m_Extreme1.getRawButton(2)) {
+      m_encoder1.reset();
+      m_encoder2.reset();
+    }
   }
 
   /** This function is called once when the robot is disabled. */
