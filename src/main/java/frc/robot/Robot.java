@@ -21,6 +21,12 @@ import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Encoder;
 
+// limelight imports
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.networktables.NetworkTableInstance;
+
 public class Robot extends TimedRobot {
   private static final String kDefaultAuto = "Default";
   private static final String kCustomAuto = "My Auto";
@@ -131,9 +137,9 @@ public class Robot extends TimedRobot {
   /** This function is called once when teleop is enabled. */
   @Override
   public void teleopInit() {
-  m_robotDrive.arcadeDrive(0, 0);
-  m_ShooterLeft.set(0);
-  m_ShooterRight.set(0);
+    m_robotDrive.arcadeDrive(0, 0);
+    m_ShooterLeft.set(0);
+    m_ShooterRight.set(0);
   }
   /** This function is called periodically during operator control. */
   @Override
@@ -146,8 +152,22 @@ public class Robot extends TimedRobot {
         m_BottomIntakeMotor2.set(0);
        // stop motor
     }
+    //grabbing values
+    NetworkTable table = NetworkTableInstance.getDefault().getTable("limelight");
+    NetworkTableEntry tx = table.getEntry("tx");
+    NetworkTableEntry ty = table.getEntry("ty");
+    NetworkTableEntry ta = table.getEntry("ta");
 
-    
+    //read values periodically
+    double x = tx.getDouble(0.0);
+    double y = ty.getDouble(0.0);
+    double area = ta.getDouble(0.0);
+
+    //post to smart dashboard periodically
+    SmartDashboard.putNumber("LimelightX", x);
+    SmartDashboard.putNumber("LimelightY", y);
+    SmartDashboard.putNumber("LimelightArea", area);
+        
 
     if(m_Extreme1.getTrigger()) { //Shooter
       m_ShooterLeft.set(-1);
