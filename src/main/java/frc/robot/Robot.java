@@ -13,6 +13,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.XboxController; 
 
 import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
@@ -47,6 +48,7 @@ public class Robot extends TimedRobot {
   private final DifferentialDrive m_robotDrive = new DifferentialDrive(m_leftMotor, m_rightMotor);
   private final Joystick m_Extreme0 = new Joystick(0); //Left : shooter
   private final Joystick  m_Extreme1 = new Joystick(1); //Right : intake
+  private final XboxController m_xboxController = new XboxController (3); // for new limelight xbox controller 
 
   private Encoder m_encoder1 = new Encoder(0, 1);
   private Encoder m_encoder2 = new Encoder(2, 3);
@@ -57,11 +59,15 @@ public class Robot extends TimedRobot {
   public Timer time = new Timer();
   public Timer time1 = new Timer();
   public double starttime = 0;
+  public double limeLightLeftMotorPercentage = 0;
+  public double limeLightRightMotorPercentage = 0;
 
   double scaleJoystickInput(double joyIn) {
     return Math.signum(joyIn) * Math.pow( Math.abs(joyIn), 2);
   }
-
+  double degreesToRadians (double degrees) {
+    return Math.PI * degrees/180.;  
+  } 
   @Override
   public void robotInit() {
     m_chooser.setDefaultOption("Default Auto", kDefaultAuto);
@@ -168,6 +174,19 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("LimelightY", y);
     SmartDashboard.putNumber("LimelightArea", area);
         
+
+    //estimating positioning
+    double KpDistance = -0.1f;  // Proportional control constant for distance
+    double current_distance = ((Constants.limeLightTargetHeight-Constants.limeLightCameraHeight) / Math.tan(Constants.limeLightMountAngle + degreesToRadians(y)));  // see the 'Case Study: Estimating Distance'
+
+    if (m_xboxController.getAButton())
+    {
+      double distance_error = Constants.limeLightDesiredDistance - current_distance;
+      double zDistanceAdjust = KpDistance * distance_error;
+
+      limeLightLeftMotorPercentage += zDistanceAdjust;
+      limeLightRightMotorPercentage += zDistanceAdjust;
+    }
 
     if(m_Extreme1.getTrigger()) { //Shooter
       m_ShooterLeft.set(-1);
